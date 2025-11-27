@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 
 import {
   TypedUseSelectorHook,
@@ -6,10 +6,33 @@ import {
   useSelector as selectorHook
 } from 'react-redux';
 
-const rootReducer = () => {}; // Заменить на импорт настоящего редьюсера
+import {
+  ingredientsReducer,
+  constructorReducer,
+  orderReducer,
+  feedReducer,
+  userReducer,
+  authReducer
+} from './slices';
+import { wsMiddleware } from './middleware/wsMiddleware';
+
+const rootReducer = combineReducers({
+  ingredients: ingredientsReducer,
+  burgerConstructor: constructorReducer,
+  order: orderReducer,
+  feed: feedReducer,
+  user: userReducer,
+  auth: authReducer
+});
 
 const store = configureStore({
   reducer: rootReducer,
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: ['wsConnectionStart', 'wsUserConnectionStart']
+      }
+    }).concat(wsMiddleware),
   devTools: process.env.NODE_ENV !== 'production'
 });
 

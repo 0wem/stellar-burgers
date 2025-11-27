@@ -1,7 +1,21 @@
 import { setCookie, getCookie } from './cookie';
 import { TIngredient, TOrder, TOrdersData, TUser } from './types';
 
-const URL = process.env.BURGER_API_URL;
+// Ensure URL has protocol
+const getApiUrl = () => {
+  const envUrl = process.env.BURGER_API_URL;
+  // If envUrl is undefined, null, or empty string, use default
+  if (!envUrl || envUrl.trim() === '') {
+    return 'https://norma.education-services.ru/api';
+  }
+  // If URL doesn't start with http:// or https://, add https://
+  if (!envUrl.startsWith('http://') && !envUrl.startsWith('https://')) {
+    return `https://${envUrl}`;
+  }
+  return envUrl;
+};
+
+const URL = getApiUrl();
 
 const checkResponse = <T>(res: Response): Promise<T> =>
   res.ok ? res.json() : res.json().then((err) => Promise.reject(err));

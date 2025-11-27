@@ -62,11 +62,17 @@ export const wsMiddleware: Middleware = (store) => (next) => (action) => {
 
     // Close existing connection if any (but not connecting/open)
     if (socket) {
-      socket.close();
+      if (
+        socket.readyState === WebSocket.OPEN ||
+        socket.readyState === WebSocket.CONNECTING
+      ) {
+        socket.close();
+      }
       socket = null;
     }
 
-    socket = new WebSocket(`${URL}/orders/all`);
+    const wsUrl = `${URL}/orders/all`;
+    socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
       dispatch(wsConnectionSuccess());
@@ -80,9 +86,21 @@ export const wsMiddleware: Middleware = (store) => (next) => (action) => {
       try {
         const parsedData = JSON.parse(event.data);
         // Handle both formats: { orders: [...], total: ..., totalToday: ... } and { success: true, ... }
-        const data: TOrdersData = parsedData.orders
-          ? parsedData
-          : { orders: [], total: 0, totalToday: 0 };
+        let data: TOrdersData;
+        if (parsedData.success && parsedData.orders) {
+          // Format: { success: true, orders: [...], total: ..., totalToday: ... }
+          data = {
+            orders: parsedData.orders,
+            total: parsedData.total || 0,
+            totalToday: parsedData.totalToday || 0
+          };
+        } else if (parsedData.orders) {
+          // Format: { orders: [...], total: ..., totalToday: ... }
+          data = parsedData;
+        } else {
+          // Fallback: empty data
+          data = { orders: [], total: 0, totalToday: 0 };
+        }
         dispatch(wsGetMessage(data));
       } catch (error) {
         // Silently handle parsing errors
@@ -149,11 +167,22 @@ export const wsMiddleware: Middleware = (store) => (next) => (action) => {
 
   if (wsConnectionClosed.match(action)) {
     if (socket) {
-      if (
-        socket.readyState === WebSocket.OPEN ||
-        socket.readyState === WebSocket.CONNECTING
-      ) {
-        socket.close();
+      // Only close if socket is actually open
+      // Don't close if it's still connecting (might be StrictMode cleanup)
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.close(1000, 'Normal closure');
+      } else if (socket.readyState === WebSocket.CONNECTING) {
+        // If still connecting, wait a bit before closing
+        // This prevents premature closure in React StrictMode
+        const connectingSocket = socket;
+        setTimeout(() => {
+          if (
+            connectingSocket.readyState === WebSocket.OPEN ||
+            connectingSocket.readyState === WebSocket.CONNECTING
+          ) {
+            connectingSocket.close(1000, 'Normal closure');
+          }
+        }, 2000);
       }
       socket = null;
     }

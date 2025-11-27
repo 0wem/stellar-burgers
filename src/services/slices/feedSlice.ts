@@ -47,9 +47,9 @@ const feedSlice = createSlice({
       state.wsConnected = false;
     },
     wsGetMessage: (state, action: PayloadAction<TOrdersData>) => {
-      state.orders = action.payload.orders;
-      state.total = action.payload.total;
-      state.totalToday = action.payload.totalToday;
+      state.orders = action.payload.orders || [];
+      state.total = action.payload.total || 0;
+      state.totalToday = action.payload.totalToday || 0;
     }
   },
   extraReducers: (builder) => {

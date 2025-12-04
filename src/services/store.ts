@@ -16,7 +16,7 @@ import {
 } from './slices';
 import { wsMiddleware } from './middleware/wsMiddleware';
 
-const rootReducer = combineReducers({
+export const rootReducer = combineReducers({
   ingredients: ingredientsReducer,
   burgerConstructor: constructorReducer,
   order: orderReducer,
